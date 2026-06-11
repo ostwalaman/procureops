@@ -17,7 +17,7 @@ from app.seed import seed_demo_data
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
-        seed_demo_data(db)
+        seed_demo_data(db, settings.data_source, settings.kaggle_row_limit)
         if db.query(ProcurementException).count() == 0:
             for invoice in db.query(Invoice).all():
                 run_triage(db, invoice.id)

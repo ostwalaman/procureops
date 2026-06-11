@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.agent.tools import record_audit_event
 from app.agent.workflow import run_triage
+from app.config import get_settings
 from app.database import get_db
 from app.models import (
     ApprovalDecision,
@@ -67,7 +68,16 @@ def _detail(db: Session, exception: ProcurementException) -> ExceptionDetail:
 
 @router.get("/health")
 def health():
-    return {"status": "ok"}
+    settings = get_settings()
+    return {
+        "status": "ok",
+        "data_source": settings.data_source,
+        "kaggle_dataset": (
+            "harshsingh2209/supply-chain-analysis"
+            if settings.data_source == "kaggle"
+            else None
+        ),
+    }
 
 
 @router.get("/invoices", response_model=list[InvoiceOut])

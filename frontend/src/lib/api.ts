@@ -1,4 +1,4 @@
-import type { AuditEvent, ExceptionDetail, ExceptionSummary, Invoice, Vendor } from "../types";
+import type { AuditEvent, ExceptionDetail, ExceptionSummary, Health, Invoice, Vendor } from "../types";
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -10,6 +10,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  health: () => request<Health>("/api/health"),
   listExceptions: () => request<ExceptionSummary[]>("/api/exceptions"),
   listInvoices: () => request<Invoice[]>("/api/invoices"),
   listVendors: () => request<Vendor[]>("/api/vendors"),

@@ -77,3 +77,9 @@ export type Vendor = {
 };
 
 export type ViewName = "exceptions" | "invoices" | "vendors" | "audit";
+
+export type Health = {
+  status: string;
+  data_source: "demo" | "kaggle";
+  kaggle_dataset: string | null;
+};

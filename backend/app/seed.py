@@ -7,8 +7,14 @@ from sqlalchemy.orm import Session
 from app.models import Invoice, PurchaseOrder, Vendor
 
 
-def seed_demo_data(db: Session) -> None:
+def seed_demo_data(db: Session, data_source: str = "demo", kaggle_row_limit: int = 30) -> None:
     if db.scalar(select(Vendor.id).limit(1)):
+        return
+
+    if data_source == "kaggle":
+        from app.kaggle_seed import seed_kaggle_data
+
+        seed_kaggle_data(db, kaggle_row_limit)
         return
 
     today = date.today()
@@ -38,4 +44,3 @@ def seed_demo_data(db: Session) -> None:
     ]
     db.add_all(invoices)
     db.commit()
-

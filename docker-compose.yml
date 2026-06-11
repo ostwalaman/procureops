@@ -5,6 +5,8 @@ services:
       - "8080:8080"
     environment:
       DATABASE_URL: sqlite:////data/procureops.db
+      DATA_SOURCE: ${DATA_SOURCE:-kaggle}
+      KAGGLE_ROW_LIMIT: ${KAGGLE_ROW_LIMIT:-30}
       CONFIDENCE_THRESHOLD: ${CONFIDENCE_THRESHOLD:-0.75}
       OPENAI_API_KEY: ${DOCKER_OPENAI_API_KEY:-}
     volumes:

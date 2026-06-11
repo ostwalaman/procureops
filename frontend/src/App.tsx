@@ -5,7 +5,7 @@ import { InvoiceEvidence } from "./components/InvoiceEvidence";
 import { RecordsView } from "./components/RecordsView";
 import { Sidebar } from "./components/Sidebar";
 import { api } from "./lib/api";
-import type { AuditEvent, ExceptionDetail, ExceptionSummary, Invoice, Vendor, ViewName } from "./types";
+import type { AuditEvent, ExceptionDetail, ExceptionSummary, Health, Invoice, Vendor, ViewName } from "./types";
 import "./styles.css";
 
 const headings: Record<ViewName, [string, string]> = {
@@ -23,6 +23,7 @@ export default function App() {
   const [allAudit, setAllAudit] = useState<AuditEvent[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [health, setHealth] = useState<Health>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,16 +39,18 @@ export default function App() {
   }
 
   async function refresh(preferredId?: number) {
-    const [nextItems, nextInvoices, nextVendors, nextAudit] = await Promise.all([
+    const [nextItems, nextInvoices, nextVendors, nextAudit, nextHealth] = await Promise.all([
       api.listExceptions(),
       api.listInvoices(),
       api.listVendors(),
       api.listAudit(),
+      api.health(),
     ]);
     setItems(nextItems);
     setInvoices(nextInvoices);
     setVendors(nextVendors);
     setAllAudit(nextAudit);
+    setHealth(nextHealth);
     const nextId = preferredId ?? detail?.id ?? nextItems[0]?.id;
     if (nextId) await selectException(nextId);
   }
@@ -97,7 +100,9 @@ export default function App() {
       <Sidebar active={view} onNavigate={setView} />
       <header className="topbar">
         <div><h1>{title}</h1><p>{subtitle}</p></div>
-        <div className="environment"><span /> Demo environment</div>
+        <div className="environment">
+          <span /> {health?.data_source === "kaggle" ? "Kaggle supply-chain data" : "Seeded demo data"}
+        </div>
       </header>
       {error ? <div className="error-banner">{error}</div> : null}
       {view === "exceptions" ? (

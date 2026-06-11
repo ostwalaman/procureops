@@ -13,6 +13,7 @@ The application performs deterministic business-rule validation before using an 
 - Human approval workflow with immutable audit events
 - FastAPI, React, SQLAlchemy, SQLite locally, and Postgres-compatible configuration
 - Deterministic fallback when OpenAI is unavailable
+- Optional Kaggle-backed supply-chain data mode with clear source attribution
 
 ## SAP Product Boundary
 
@@ -31,6 +32,21 @@ live SAP system. A production integration would replace that repository boundary
 
 The agent remains decision support only: it recommends an action and drafts an
 escalation note, while a reviewer records the actual approval decision.
+
+## Data Sources
+
+The application supports two data modes:
+
+- `demo`: five small hand-created procurement scenarios used by automated tests
+- `kaggle`: records derived from Kaggle's
+  [Supply Chain Analysis](https://www.kaggle.com/datasets/harshsingh2209/supply-chain-analysis)
+  dataset (`harshsingh2209/supply-chain-analysis`, CC0 Public Domain)
+
+The Kaggle source contains supplier, SKU, price, order quantity, lead-time, shipping,
+inspection, defect-rate, route, and cost fields. It does not contain real SAP purchase
+orders or invoices. ProcureOps maps the source fields into SAP-style records and
+derives dates and controlled exception scenarios so the agent workflow can be
+demonstrated honestly.
 
 ## Run Locally
 
@@ -54,7 +70,7 @@ Open `http://localhost:5173`. Seed data and initial triage records are created a
 ## Run With Docker
 
 Docker packages the React dashboard, FastAPI backend, Python dependencies, and seeded
-demo data into one repeatable application image.
+data into one repeatable application image. Docker uses Kaggle data by default.
 
 Start Docker Desktop, then run:
 
@@ -79,6 +95,18 @@ To reset the demo database:
 
 ```bash
 docker compose down --volumes
+```
+
+Change the imported Kaggle row count:
+
+```bash
+KAGGLE_ROW_LIMIT=50 docker compose up --build
+```
+
+Run the original five-record demo instead:
+
+```bash
+DATA_SOURCE=demo docker compose up --build
 ```
 
 OpenAI is optional. Without an API key, the agent uses deterministic recommendations.
