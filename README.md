@@ -51,6 +51,46 @@ npm run dev
 
 Open `http://localhost:5173`. Seed data and initial triage records are created automatically.
 
+## Run With Docker
+
+Docker packages the React dashboard, FastAPI backend, Python dependencies, and seeded
+demo data into one repeatable application image.
+
+Start Docker Desktop, then run:
+
+```bash
+docker compose up --build
+```
+
+Open:
+
+- Dashboard: `http://localhost:8080`
+- Interactive API documentation: `http://localhost:8080/docs`
+- OpenAPI schema: `http://localhost:8080/openapi.json`
+
+The SQLite database is stored in a Docker volume, so demo decisions remain available
+after the container restarts. Stop the application with:
+
+```bash
+docker compose down
+```
+
+To reset the demo database:
+
+```bash
+docker compose down --volumes
+```
+
+OpenAI is optional. Without an API key, the agent uses deterministic recommendations.
+To enable OpenAI-generated wording:
+
+```bash
+DOCKER_OPENAI_API_KEY=your-key docker compose up --build
+```
+
+Docker uses a separate `DOCKER_OPENAI_API_KEY` variable so a key stored in a local
+`.env` file is not passed into the container accidentally.
+
 ## API
 
 - `POST /api/invoices/{id}/triage`
@@ -62,6 +102,19 @@ Open `http://localhost:5173`. Seed data and initial triage records are created a
 
 Run the MCP server from `backend/` with `python -m app.mcp_server`.
 
+### How OpenAPI Helps
+
+OpenAPI is different from OpenAI. FastAPI automatically creates an OpenAPI description
+of every REST endpoint, request body, and response type in this project.
+
+The `/docs` page uses that description to provide an interactive browser interface.
+It lets a reviewer or recruiter test the API without writing frontend code. For
+example, they can run invoice triage, list exceptions, record a reviewer decision,
+and inspect an audit log directly from the browser.
+
+OpenAPI does not run Docker or perform invoice analysis. It documents and makes the
+backend API easier to test, integrate, and understand.
+
 ## Tests
 
 ```bash
@@ -69,16 +122,9 @@ cd backend
 pytest
 ```
 
-## Cloud Run
+## Development Approach
 
-The root `Dockerfile` builds the React dashboard and Python API into one Cloud Run image. Configure a Postgres `DATABASE_URL` for durable production persistence; SQLite is intended for the local demo.
-
-```bash
-gcloud run deploy procureops \
-  --source . \
-  --region us-east1 \
-  --allow-unauthenticated \
-  --set-env-vars CONFIDENCE_THRESHOLD=0.75
-```
-
-For a real deployment, store `OPENAI_API_KEY` and database credentials in Secret Manager and remove unauthenticated access.
+I built this as a portfolio project using AI-assisted development. I used AI as a
+pair-programming tool while iterating on the architecture, implementation, tests,
+documentation, and user interface. The project is intentionally presented as a
+working SAP-style prototype, not as a production SAP integration.

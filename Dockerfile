@@ -1,7 +1,7 @@
 FROM node:22-alpine AS frontend
 WORKDIR /frontend
 COPY frontend/package*.json ./
-RUN npm install
+RUN npm ci
 COPY frontend .
 RUN npm run build
 
@@ -13,4 +13,3 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/app ./app
 COPY --from=frontend /frontend/dist ./static
 CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
-
