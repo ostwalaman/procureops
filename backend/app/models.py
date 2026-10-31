@@ -2,7 +2,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum
 
-from sqlalchemy import JSON, Date, DateTime, Enum as SqlEnum, ForeignKey, Numeric, String, Text
+from sqlalchemy import JSON, Date, DateTime, Enum as SqlEnum, ForeignKey, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -121,3 +121,81 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
     )
+
+
+# Line-level matching records coexist with legacy header columns during migration.
+class PurchaseOrderLine(Base):
+    __tablename__ = "purchase_order_lines"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    purchase_order_id: Mapped[int] = mapped_column(ForeignKey("purchase_orders.id"), nullable=False)
+    line_number: Mapped[int] = mapped_column(nullable=False)
+    description: Mapped[str] = mapped_column(String(160), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3), nullable=False)
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    purchase_order: Mapped[PurchaseOrder] = relationship()
+    __table_args__ = (UniqueConstraint("purchase_order_id", "line_number"),)
+
+
+class GoodsReceipt(Base):
+    __tablename__ = "goods_receipts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    purchase_order_id: Mapped[int] = mapped_column(ForeignKey("purchase_orders.id"), nullable=False)
+    receipt_number: Mapped[str] = mapped_column(String(60), unique=True, nullable=False)
+    received_date: Mapped[date] = mapped_column(Date, nullable=False)
+    source: Mapped[str] = mapped_column(String(30), nullable=False, default="recorded")
+    provenance_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    purchase_order: Mapped[PurchaseOrder] = relationship()
+    lines: Mapped[list["GoodsReceiptLine"]] = relationship(back_populates="receipt")
+
+
+class GoodsReceiptLine(Base):
+    __tablename__ = "goods_receipt_lines"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    goods_receipt_id: Mapped[int] = mapped_column(ForeignKey("goods_receipts.id"), nullable=False)
+    purchase_order_line_id: Mapped[int] = mapped_column(ForeignKey("purchase_order_lines.id"), nullable=False)
+    quantity_received: Mapped[Decimal] = mapped_column(Numeric(18, 3), nullable=False)
+    receipt: Mapped[GoodsReceipt] = relationship(back_populates="lines")
+    purchase_order_line: Mapped[PurchaseOrderLine] = relationship()
+    __table_args__ = (UniqueConstraint("goods_receipt_id", "purchase_order_line_id"),)
+
+
+class InvoiceLine(Base):
+    __tablename__ = "invoice_lines"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("invoices.id"), nullable=False)
+    purchase_order_line_id: Mapped[int | None] = mapped_column(ForeignKey("purchase_order_lines.id"), nullable=True)
+    line_number: Mapped[int] = mapped_column(nullable=False)
+    description: Mapped[str] = mapped_column(String(160), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3), nullable=False)
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    invoice: Mapped[Invoice] = relationship()
+    purchase_order_line: Mapped[PurchaseOrderLine | None] = relationship()
+    __table_args__ = (UniqueConstraint("invoice_id", "line_number"),)
+
+
+class MatchRun(Base):
+    __tablename__ = "match_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("invoices.id"), nullable=False)
+    rule_version: Mapped[str] = mapped_column(String(20), nullable=False, default="2.0")
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    invoice: Mapped[Invoice] = relationship()
+    findings: Mapped[list["MatchFinding"]] = relationship(back_populates="match_run", order_by="MatchFinding.id")
+
+
+class MatchFinding(Base):
+    __tablename__ = "match_findings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    match_run_id: Mapped[int] = mapped_column(ForeignKey("match_runs.id"), nullable=False)
+    code: Mapped[str] = mapped_column(String(60), nullable=False)
+    severity: Mapped[str] = mapped_column(String(20), nullable=False)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    detail: Mapped[str] = mapped_column(Text, nullable=False)
+    match_run: Mapped[MatchRun] = relationship(back_populates="findings")

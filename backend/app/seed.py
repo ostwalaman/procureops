@@ -5,16 +5,19 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Invoice, PurchaseOrder, Vendor
+from app.services.backfill import backfill_legacy_records
 
 
 def seed_demo_data(db: Session, data_source: str = "demo", kaggle_row_limit: int = 30) -> None:
     if db.scalar(select(Vendor.id).limit(1)):
+        backfill_legacy_records(db)
         return
 
     if data_source == "kaggle":
         from app.kaggle_seed import seed_kaggle_data
 
         seed_kaggle_data(db, kaggle_row_limit)
+        backfill_legacy_records(db)
         return
 
     today = date.today()
@@ -44,3 +47,4 @@ def seed_demo_data(db: Session, data_source: str = "demo", kaggle_row_limit: int
     ]
     db.add_all(invoices)
     db.commit()
+    backfill_legacy_records(db)
